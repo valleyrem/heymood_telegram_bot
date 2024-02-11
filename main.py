@@ -40,6 +40,7 @@ def help_command(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(help_text)
 
 def start(update: Update, context: CallbackContext) -> int:
+    print('Heymood is running')
     user_id = update.message.from_user.id
 
     if user_exists(user_id):
@@ -53,7 +54,7 @@ def start(update: Update, context: CallbackContext) -> int:
         return ConversationHandler.END
 
     # The user launches the bot for the first time, selecting a language, registering
-    update.message.reply_text("Hi. Choose your language for communication\nПривет. Выберите язык общения",
+    update.message.reply_text("Choose your language for communication 🌐en\n\n\nВыберите язык общения 🌐ru",
                                reply_markup=ReplyKeyboardMarkup([['ru', 'en']], one_time_keyboard=True))
 
     return GET_LANGUAGE
