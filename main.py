@@ -44,7 +44,6 @@ GETTING_MOOD = 4
 def start(update: Update, context: CallbackContext) -> int:
     user_id = update.message.from_user.id
 
-    # Проверяем, есть ли пользователь уже в базе данных
     if user_exists(user_id):
         lang = get_user_lang_from_database(user_id)
         if lang == 'ru':
@@ -84,7 +83,6 @@ def get_language(update: Update, context: CallbackContext) -> int:
 
     context.job_queue.run_once(get_sex, 1, context={'lang': lang, 'chat_id': update.message.chat_id})
     return GETTING_SEX
-
 
 def get_sex(context: CallbackContext) -> None:
     lang = context.job.context.get('lang',
