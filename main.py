@@ -1,6 +1,6 @@
 from telegram.ext import Updater, CommandHandler, CallbackContext, ConversationHandler
 from telegram.ext import MessageHandler, Filters
-from telegram import ReplyKeyboardMarkup
+from telegram import ReplyKeyboardMarkup, KeyboardButton
 from messages_ru import messages_ru
 from messages_en import messages_en
 from datetime import datetime
@@ -54,8 +54,10 @@ def start(update: Update, context: CallbackContext) -> int:
         return ConversationHandler.END
 
     # The user launches the bot for the first time, selecting a language, registering
-    update.message.reply_text("Choose your language for communication 🌐en\n\n\nВыберите язык общения 🌐ru",
-                               reply_markup=ReplyKeyboardMarkup([['ru', 'en']], one_time_keyboard=True))
+    update.message.reply_text("        🌐\nChoose your language for communication/Выберите язык общения",
+                              reply_markup=ReplyKeyboardMarkup([
+                                  [KeyboardButton('ru'), KeyboardButton('en')]
+                              ], one_time_keyboard=True, resize_keyboard=True))
 
     return GET_LANGUAGE
 
@@ -89,6 +91,7 @@ def get_sex(context: CallbackContext) -> None:
     lang = context.job.context.get('lang', 'ru')  # Russian by default
     chat_id = context.job.context.get('chat_id')
 
+
     if lang == 'ru':
         reply_keyboard = [
             ['мужской'],
@@ -114,7 +117,7 @@ def get_sex(context: CallbackContext) -> None:
     context.bot.send_message(
         chat_id,
         text=text,
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard)
+        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
 
 def get_age(update: Update, context: CallbackContext) -> int:
@@ -281,33 +284,30 @@ def receive_city(update, context):
 def select_mood(update: Update, context: CallbackContext) -> int:
     user_id = update.message.from_user.id
     lang = get_user_lang_from_database(user_id)
+    buttons = [
+        [KeyboardButton('1'), KeyboardButton('2'), KeyboardButton('3')],
+        [KeyboardButton('4'), KeyboardButton('5'), KeyboardButton('6')],
+        [KeyboardButton('7'), KeyboardButton('8'), KeyboardButton('9')],
+        [KeyboardButton('10')]
+    ]
 
     if lang == 'ru':
-        reply_keyboard = [
-            ['1', '2', '3', '4', '5'],
-            ['6', '7', '8', '9', '10']
-        ]
+        reply_keyboard = buttons
         update.message.reply_text(
             messages_ru['select_mood'],
-            reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+            reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
         )
     elif lang == 'en':
-        reply_keyboard = [
-            ['1', '2', '3', '4', '5'],
-            ['6', '7', '8', '9', '10']
-        ]
+        reply_keyboard = buttons
         update.message.reply_text(
             messages_en['select_mood'],
-            reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+            reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
         )
     else:
-        reply_keyboard = [
-            ['1', '2', '3', '4', '5'],
-            ['6', '7', '8', '9', '10']
-        ]
+        reply_keyboard = buttons
         update.message.reply_text(
             messages_ru['select_mood'],
-            reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+            reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
         )
     return GETTING_MOOD
 
@@ -323,7 +323,7 @@ def save_mood(update: Update, context: CallbackContext) -> int:
     else:
         update.message.reply_text(messages_ru['saved_mood'])
 
-    context.job_queue.run_once(send_advice, 2, context={'update': update, 'mood': mood})
+    context.job_queue.run_once(send_advice, 3, context={'update': update, 'mood': mood})
     save_mood_to_database(user_id, mood)
     return ConversationHandler.END
 
@@ -342,7 +342,7 @@ def send_advice(context: CallbackContext):
     elif lang == 'en':
         if 1 <= mood <= 4:
             advice_text = messages_en['low_mood_advice']
-        elif 5 <= mood <= 6:
+        elif 5 <= mood <= 7:
             advice_text = messages_en['medium_mood_advice']
         else:
             advice_text = messages_en['high_mood_advice']
