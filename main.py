@@ -1,18 +1,21 @@
-from datetime import datetime
-from matplotlib import pyplot as plt
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler
-from pytz import timezone
-from telegram import ReplyKeyboardMarkup, KeyboardButton
-import requests
+from telegram.ext import Updater, CommandHandler, CallbackContext, ConversationHandler
 from telegram.ext import MessageHandler, Filters
-import config
-import psycopg2
-from bs4 import BeautifulSoup
+from telegram import ReplyKeyboardMarkup
 from messages_ru import messages_ru
 from messages_en import messages_en
+from datetime import datetime
+from telegram import Update
+import requests
+import psycopg2
+import config
 
-# Подключение к базе данных PostgreSQL
+GET_LANGUAGE = 0
+GETTING_SEX = 1
+GETTING_AGE = 2
+GET_CITY = 3
+GETTING_MOOD = 4
+
+# Connecting to PostgreSQL
 def connect_to_database():
     conn = psycopg2.connect(
         dbname=config.DB_NAME,
@@ -26,20 +29,15 @@ def connect_to_database():
 def help_command(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     lang = get_user_lang_from_database(user_id)
+
     if lang == 'ru':
         help_text = messages_ru['help']
     elif lang == 'en':
         help_text = messages_en['help']
     else:
         help_text = messages_ru['help']
+
     update.message.reply_text(help_text)
-
-GET_LANGUAGE = 0
-GETTING_SEX = 1
-GETTING_AGE = 2
-GET_CITY = 3
-GETTING_MOOD = 4
-
 
 def start(update: Update, context: CallbackContext) -> int:
     user_id = update.message.from_user.id
@@ -54,26 +52,28 @@ def start(update: Update, context: CallbackContext) -> int:
             update.message.reply_text(messages_ru['existing_user'])
         return ConversationHandler.END
 
-    # Пользователь впервые запускает бота, выбор языка, регистрация
+    # The user launches the bot for the first time, selecting a language, registering
     update.message.reply_text("Hi. Choose your language for communication\nПривет. Выберите язык общения",
                                reply_markup=ReplyKeyboardMarkup([['ru', 'en']], one_time_keyboard=True))
 
     return GET_LANGUAGE
 
-
 def get_language(update: Update, context: CallbackContext) -> int:
     chosen_lang = update.message.text
     context.user_data['lang'] = chosen_lang
+
     if chosen_lang == 'ru':
         update.message.reply_text(f"Выбранный язык: Русский")
     elif chosen_lang == 'en':
         update.message.reply_text(f"Selected language: English")
     else:
         update.message.reply_text(f"Выбранный язык: Русский")
+
     user_id = update.message.from_user.id
     context.user_data['user_id'] = user_id
 
-    lang = context.user_data.get('lang', 'ru')  # Получаем выбранный язык (если не выбран, используем русский по умолчанию)
+    lang = context.user_data.get('lang', 'ru')  # Russian by default
+
     if lang == 'ru':
         update.message.reply_text(messages_ru['start'])
     elif lang == 'en':
@@ -85,9 +85,8 @@ def get_language(update: Update, context: CallbackContext) -> int:
     return GETTING_SEX
 
 def get_sex(context: CallbackContext) -> None:
-    lang = context.job.context.get('lang',
-                                   'ru')  # Получаем выбранный язык (если не выбран, используем русский по умолчанию)
-    chat_id = context.job.context.get('chat_id')  # Получаем идентификатор чата
+    lang = context.job.context.get('lang', 'ru')  # Russian by default
+    chat_id = context.job.context.get('chat_id')
 
     if lang == 'ru':
         reply_keyboard = [
@@ -120,7 +119,8 @@ def get_sex(context: CallbackContext) -> None:
 def get_age(update: Update, context: CallbackContext) -> int:
     sex = update.message.text
     context.user_data['sex'] = sex
-    lang = context.user_data.get('lang', 'ru')  # Получаем выбранный язык (если не выбран, используем русский по умолчанию)
+    lang = context.user_data.get('lang', 'ru')  # Russian by default
+
     if lang == 'ru':
         update.message.reply_text(messages_ru['age_ask'])
     elif lang == 'en':
@@ -129,11 +129,9 @@ def get_age(update: Update, context: CallbackContext) -> int:
         update.message.reply_text(messages_ru['age_ask'])
     return GETTING_AGE
 
-
 def save_user_info(update: Update, context: CallbackContext) -> int:
     age = update.message.text
-    lang = context.user_data.get('lang',
-                                 'ru')  # Получаем выбранный язык (если не выбран, используем русский по умолчанию)
+    lang = context.user_data.get('lang','ru')  # Russian by default
 
     if not age.isdigit():
         if lang == 'ru':
@@ -142,7 +140,7 @@ def save_user_info(update: Update, context: CallbackContext) -> int:
             update.message.reply_text(messages_en['age_ask_again'])
         else:
             update.message.reply_text(messages_ru['age_ask_again'])
-        return GETTING_AGE  # Повторный запрос возраста
+        return GETTING_AGE
 
     age = int(age)
     user_id = context.user_data['user_id']
@@ -160,7 +158,6 @@ def save_user_info(update: Update, context: CallbackContext) -> int:
     else:
         update.message.reply_text(messages_ru['success_save'])
     return ConversationHandler.END
-
 
 def user_exists(user_id):
     conn = connect_to_database()
@@ -233,6 +230,7 @@ def me(update: Update, context: CallbackContext) -> None:
 def start_weather(update, context):
     user_id = update.message.from_user.id
     lang = get_user_lang_from_database(user_id)
+
     if lang == 'ru':
         update.message.reply_text(messages_ru['start_weather'])
     elif lang == 'en':
@@ -254,6 +252,7 @@ def receive_city(update, context):
     city_name = update.message.text
     api_key = config.OPEN_WEATHER_API
     weather_data = get_weather(city_name, api_key)
+
     if weather_data["cod"] == 200:
         temperature = weather_data["main"]["temp"]
         humidity = weather_data["main"]["humidity"]
@@ -261,7 +260,6 @@ def receive_city(update, context):
         visibility = weather_data["visibility"]
         pressure = weather_data["main"]["pressure"]
         description = weather_data["weather"][0]["description"]
-
         if lang == 'ru':
             message = messages_ru['get_weather'].format(city_name=city_name, temperature=temperature, humidity=humidity, wind_speed=wind_speed, visibility=visibility, pressure=pressure, description=description)
         elif lang == 'en':
@@ -312,7 +310,6 @@ def select_mood(update: Update, context: CallbackContext) -> int:
         )
     return GETTING_MOOD
 
-
 def save_mood(update: Update, context: CallbackContext) -> int:
     mood = int(update.message.text)
     user_id = update.message.from_user.id
@@ -325,7 +322,6 @@ def save_mood(update: Update, context: CallbackContext) -> int:
     else:
         update.message.reply_text(messages_ru['saved_mood'])
 
-    # Запускаем функцию для отправки советов через 2 секунды
     context.job_queue.run_once(send_advice, 2, context={'update': update, 'mood': mood})
     save_mood_to_database(user_id, mood)
     return ConversationHandler.END
@@ -359,7 +355,6 @@ def send_advice(context: CallbackContext):
 
     update.message.reply_text(advice_text)
 
-
 def save_mood_to_database(user_id: int, mood: int) -> None:
     conn = connect_to_database()
     cursor = conn.cursor()
@@ -373,14 +368,16 @@ def save_mood_to_database(user_id: int, mood: int) -> None:
     conn.commit()
     conn.close()
 
-
 def main() -> None:
     updater = Updater(token=config.TELEGRAM_TOKEN, use_context=True)
 
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start), CommandHandler('weather', start_weather), CommandHandler('mood', select_mood), CommandHandler('mood', save_mood)],
+        entry_points=[CommandHandler('start', start),
+                      CommandHandler('weather', start_weather),
+                      CommandHandler('mood', select_mood),
+                      CommandHandler('mood', save_mood)],
         states={
             GET_LANGUAGE: [MessageHandler(Filters.regex(r'^(ru|en)$'), get_language)],
             GETTING_SEX: [MessageHandler(Filters.text & ~Filters.command, get_age)],
@@ -398,7 +395,6 @@ def main() -> None:
     dp.add_handler(CommandHandler("mood", select_mood))
     updater.start_polling()
     updater.idle()
-
 
 if __name__ == '__main__':
     main()
