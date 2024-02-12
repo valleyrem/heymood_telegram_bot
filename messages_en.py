@@ -7,6 +7,7 @@ messages_en = {
         /mood - Note your mood data
         /weather - Get weather data for your region
         /me - Get information about yourself
+        /changelang - Change language
         /help - Description of available commands
         """,
     'sex_ask': "Choose your gender so I can collect statistics. All data will remain confidential and will be used for internal analysis:",

@@ -9,6 +9,7 @@ import requests
 import psycopg2
 import config
 from translate import Translator
+
 GET_LANGUAGE = 0
 GETTING_SEX = 1
 GETTING_AGE = 2
@@ -27,6 +28,7 @@ def connect_to_database():
     )
     return conn
 
+
 def help_command(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     lang = get_user_lang_from_database(user_id)
@@ -39,6 +41,7 @@ def help_command(update: Update, context: CallbackContext) -> None:
         help_text = messages_ru['help']
 
     update.message.reply_text(help_text)
+
 
 def start(update: Update, context: CallbackContext) -> int:
     print('Heymood_bot is running')
@@ -61,6 +64,7 @@ def start(update: Update, context: CallbackContext) -> int:
                               ], one_time_keyboard=True, resize_keyboard=True))
 
     return GET_LANGUAGE
+
 
 def get_language(update: Update, context: CallbackContext) -> int:
     chosen_lang = update.message.text
@@ -88,10 +92,10 @@ def get_language(update: Update, context: CallbackContext) -> int:
     context.job_queue.run_once(get_sex, 1, context={'lang': lang, 'chat_id': update.message.chat_id})
     return GETTING_SEX
 
+
 def get_sex(context: CallbackContext) -> None:
     lang = context.job.context.get('lang', 'ru')  # Russian by default
     chat_id = context.job.context.get('chat_id')
-
 
     if lang == 'ru':
         reply_keyboard = [
@@ -121,6 +125,7 @@ def get_sex(context: CallbackContext) -> None:
         reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
 
+
 def get_age(update: Update, context: CallbackContext) -> int:
     sex = update.message.text
     context.user_data['sex'] = sex
@@ -133,6 +138,7 @@ def get_age(update: Update, context: CallbackContext) -> int:
     else:
         update.message.reply_text(messages_ru['age_ask'])
     return GETTING_AGE
+
 
 def save_user_info(update: Update, context: CallbackContext) -> int:
     age = update.message.text
@@ -164,6 +170,7 @@ def save_user_info(update: Update, context: CallbackContext) -> int:
         update.message.reply_text(messages_ru['success_save'])
     return ConversationHandler.END
 
+
 def user_exists(user_id):
     conn = connect_to_database()
     cursor = conn.cursor()
@@ -174,6 +181,7 @@ def user_exists(user_id):
     conn.close()
     return result is not None
 
+
 def add_user_to_database(user_id: int, sex: str, age: int, lang: str) -> None:
     conn = connect_to_database()
     cursor = conn.cursor()
@@ -182,7 +190,8 @@ def add_user_to_database(user_id: int, sex: str, age: int, lang: str) -> None:
     ''', (user_id, sex, age, lang))
     conn.commit()
     conn.close()
-    print(f'New user {user_id}, {sex}, {age}, {lang} has saved.')
+    print(f'New user: {user_id}, {sex}, {age}, {lang}.')
+
 
 def update_user_in_database(user_id: int, sex: str, age: int) -> None:
     conn = connect_to_database()
@@ -194,6 +203,7 @@ def update_user_in_database(user_id: int, sex: str, age: int) -> None:
     ''', (sex, age, user_id))
     conn.commit()
     conn.close()
+
 
 def get_user_lang_from_database(user_id):
     conn = connect_to_database()
@@ -208,6 +218,7 @@ def get_user_lang_from_database(user_id):
     else:
         return None
 
+
 def update_user_lang_in_database(user_id, lang):
     conn = connect_to_database()
     cursor = conn.cursor()
@@ -217,6 +228,7 @@ def update_user_lang_in_database(user_id, lang):
     conn.commit()
     conn.close()
 
+
 def changelang_command(update, context):
     keyboard = [
         [
@@ -225,7 +237,8 @@ def changelang_command(update, context):
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text('Выберите язык/Choose language:', reply_markup=reply_markup)
+    update.message.reply_text('Выбери язык/Choose language:', reply_markup=reply_markup)
+
 
 def button(update, context):
     query = update.callback_query
@@ -264,6 +277,7 @@ def me(update: Update, context: CallbackContext) -> None:
     else:
         update.message.reply_text(messages_ru['about_me'].format(sex=sex, age=age))
 
+
 def start_weather(update, context):
     user_id = update.message.from_user.id
     lang = get_user_lang_from_database(user_id)
@@ -277,11 +291,13 @@ def start_weather(update, context):
 
     return GET_CITY
 
+
 def get_weather(city_name, api_key):
     url = f"https://api.openweathermap.org/data/2.5/weather?q={city_name}&appid={api_key}&units=metric"
     response = requests.get(url)
     data = response.json()
     return data
+
 
 def receive_city(update, context):
     user_id = update.message.from_user.id
@@ -315,6 +331,7 @@ def receive_city(update, context):
     update.message.reply_text(message)
     return ConversationHandler.END
 
+
 def select_mood(update: Update, context: CallbackContext) -> int:
     user_id = update.message.from_user.id
     lang = get_user_lang_from_database(user_id)
@@ -345,11 +362,12 @@ def select_mood(update: Update, context: CallbackContext) -> int:
         )
     return GETTING_MOOD
 
+
 def save_mood(update: Update, context: CallbackContext) -> int:
     mood = int(update.message.text)
     user_id = update.message.from_user.id
     lang = get_user_lang_from_database(user_id)
-    print(f'User{user_id} saved his mood {mood}')
+    print(f'User {user_id} saved his mood: {mood}')
 
     if lang == 'ru':
         update.message.reply_text(messages_ru['saved_mood'])
@@ -362,13 +380,11 @@ def save_mood(update: Update, context: CallbackContext) -> int:
     save_mood_to_database(user_id, mood)
     return ConversationHandler.END
 
+
 def send_advice(context: CallbackContext):
     update = context.job.context['update']
     mood = context.job.context['mood']
     lang = get_user_lang_from_database(update.message.from_user.id)
-
-
-
     if lang == 'ru':
         if 1 <= mood <= 4:
             advice_text = messages_ru['low_mood_advice']
@@ -393,6 +409,7 @@ def send_advice(context: CallbackContext):
 
     update.message.reply_text(advice_text)
 
+
 def save_mood_to_database(user_id: int, mood: int) -> None:
     conn = connect_to_database()
     cursor = conn.cursor()
@@ -408,9 +425,12 @@ def save_mood_to_database(user_id: int, mood: int) -> None:
 
 
 translator = Translator(to_lang="ru")
+
+
 def translate_text_with_external_library(text):
     translated_text = translator.translate(text)
     return translated_text
+
 
 def main() -> None:
     updater = Updater(token=config.TELEGRAM_TOKEN, use_context=True)
@@ -441,6 +461,7 @@ def main() -> None:
     dp.add_handler(CallbackQueryHandler(button))
     updater.start_polling()
     updater.idle()
+
 
 if __name__ == '__main__':
     main()
