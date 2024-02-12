@@ -8,12 +8,13 @@ from telegram import Update
 import requests
 import psycopg2
 import config
-
+from translate import Translator
 GET_LANGUAGE = 0
 GETTING_SEX = 1
 GETTING_AGE = 2
 GET_CITY = 3
 GETTING_MOOD = 4
+
 
 # Connecting to PostgreSQL
 def connect_to_database():
@@ -40,7 +41,7 @@ def help_command(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(help_text)
 
 def start(update: Update, context: CallbackContext) -> int:
-    print('Heymood is running')
+    print('Heymood_bot is running')
     user_id = update.message.from_user.id
 
     if user_exists(user_id):
@@ -54,7 +55,7 @@ def start(update: Update, context: CallbackContext) -> int:
         return ConversationHandler.END
 
     # The user launches the bot for the first time, selecting a language, registering
-    update.message.reply_text("        🌐\nChoose your language for communication/Выберите язык общения",
+    update.message.reply_text("🌐\nChoose your language for communication/Выберите язык общения",
                               reply_markup=ReplyKeyboardMarkup([
                                   [KeyboardButton('ru'), KeyboardButton('en')]
                               ], one_time_keyboard=True, resize_keyboard=True))
@@ -181,6 +182,7 @@ def add_user_to_database(user_id: int, sex: str, age: int, lang: str) -> None:
     ''', (user_id, sex, age, lang))
     conn.commit()
     conn.close()
+    print(f'New user {user_id}, {sex}, {age}, {lang} has saved.')
 
 def update_user_in_database(user_id: int, sex: str, age: int) -> None:
     conn = connect_to_database()
@@ -265,7 +267,8 @@ def receive_city(update, context):
         pressure = weather_data["main"]["pressure"]
         description = weather_data["weather"][0]["description"]
         if lang == 'ru':
-            message = messages_ru['get_weather'].format(city_name=city_name, temperature=temperature, humidity=humidity, wind_speed=wind_speed, visibility=visibility, pressure=pressure, description=description)
+            description_ru = translate_text_with_external_library(description)
+            message = messages_ru['get_weather'].format(city_name=city_name, temperature=temperature, humidity=humidity, wind_speed=wind_speed, visibility=visibility, pressure=pressure, description=description_ru)
         elif lang == 'en':
             message = messages_en['get_weather'].format(city_name=city_name, temperature=temperature, humidity=humidity, wind_speed=wind_speed, visibility=visibility, pressure=pressure, description=description)
         else:
@@ -315,6 +318,7 @@ def save_mood(update: Update, context: CallbackContext) -> int:
     mood = int(update.message.text)
     user_id = update.message.from_user.id
     lang = get_user_lang_from_database(user_id)
+    print(f'User{user_id} saved his mood {mood}')
 
     if lang == 'ru':
         update.message.reply_text(messages_ru['saved_mood'])
@@ -331,6 +335,8 @@ def send_advice(context: CallbackContext):
     update = context.job.context['update']
     mood = context.job.context['mood']
     lang = get_user_lang_from_database(update.message.from_user.id)
+
+
 
     if lang == 'ru':
         if 1 <= mood <= 4:
@@ -368,6 +374,12 @@ def save_mood_to_database(user_id: int, mood: int) -> None:
     ''', (user_id, mood, date, day_of_week, time))
     conn.commit()
     conn.close()
+
+
+translator = Translator(to_lang="ru")
+def translate_text_with_external_library(text):
+    translated_text = translator.translate(text)
+    return translated_text
 
 def main() -> None:
     updater = Updater(token=config.TELEGRAM_TOKEN, use_context=True)
