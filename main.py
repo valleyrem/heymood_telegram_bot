@@ -1,6 +1,6 @@
-from telegram.ext import Updater, CommandHandler, CallbackContext, ConversationHandler
+from telegram.ext import Updater, CommandHandler, CallbackContext, ConversationHandler, CallbackQueryHandler
 from telegram.ext import MessageHandler, Filters
-from telegram import ReplyKeyboardMarkup, KeyboardButton
+from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from messages_ru import messages_ru
 from messages_en import messages_en
 from datetime import datetime
@@ -208,6 +208,37 @@ def get_user_lang_from_database(user_id):
     else:
         return None
 
+def update_user_lang_in_database(user_id, lang):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE users_info SET lang = %s WHERE user_id = %s
+    ''', (lang, user_id))
+    conn.commit()
+    conn.close()
+
+def changelang_command(update, context):
+    keyboard = [
+        [
+            InlineKeyboardButton("Русский", callback_data='ru'),
+            InlineKeyboardButton("English", callback_data='en'),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text('Выберите язык/Choose language:', reply_markup=reply_markup)
+
+def button(update, context):
+    query = update.callback_query
+    query.answer()
+
+    new_lang = query.data
+    update_user_lang_in_database(query.from_user.id, new_lang)
+    if new_lang == 'ru':
+        query.edit_message_text(text=f"Язык интерфейса изменен на {new_lang}.")
+    elif new_lang == 'en':
+        query.edit_message_text(text=f"Interface language has been changed to {new_lang}.")
+
+
 def me(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     conn = connect_to_database()
@@ -406,6 +437,8 @@ def main() -> None:
     dp.add_handler(CommandHandler("me", me))
     dp.add_handler(CommandHandler("weather", start_weather))
     dp.add_handler(CommandHandler("mood", select_mood))
+    dp.add_handler(CommandHandler('changelang', changelang_command))
+    dp.add_handler(CallbackQueryHandler(button))
     updater.start_polling()
     updater.idle()
 
