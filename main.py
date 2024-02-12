@@ -9,12 +9,19 @@ import requests
 import psycopg2
 import config
 from translate import Translator
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
+import numpy as np
+import os
+from matplotlib.font_manager import FontProperties
+
 
 GET_LANGUAGE = 0
 GETTING_SEX = 1
 GETTING_AGE = 2
 GET_CITY = 3
 GETTING_MOOD = 4
+translator = Translator(to_lang="ru")
 
 
 # Connecting to PostgreSQL
@@ -424,12 +431,89 @@ def save_mood_to_database(user_id: int, mood: int) -> None:
     conn.close()
 
 
-translator = Translator(to_lang="ru")
-
-
 def translate_text_with_external_library(text):
     translated_text = translator.translate(text)
     return translated_text
+
+
+def fetch_user_moods(user_id):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+
+    current_day = datetime.now().date()
+    week_ago = current_day - timedelta(days=6)
+
+    query = """
+        SELECT date, AVG(mood) 
+        FROM user_moods 
+        WHERE user_id = %s AND date BETWEEN %s AND %s 
+        GROUP BY date
+    """
+
+    cursor.execute(query, (user_id, week_ago, current_day))
+    mood_data = cursor.fetchall()
+    conn.close()
+    all_dates = [current_day - timedelta(days=i) for i in range(6, -1, -1)]
+
+    filled_mood_data = []
+    for date in all_dates:
+        found = False
+        for mood_entry in mood_data:
+            if mood_entry[0] == date:
+                filled_mood_data.append(mood_entry)
+                found = True
+                break
+        if not found:
+            filled_mood_data.append((date, 0))
+
+    return filled_mood_data
+
+
+def test_plot_mood(update, context, user_id):
+    mood_data = fetch_user_moods(user_id)
+    lang = get_user_lang_from_database(user_id)
+    dates = [entry[0] for entry in mood_data]
+    moods = [entry[1] for entry in mood_data]
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(dates, moods, color='teal', alpha=0.7, marker='o', linewidth=8, solid_capstyle='round')
+    if lang == 'ru':
+        update.message.reply_text('Формирую график...')
+        plt.title('Динамика настроения за неделю', fontproperties=FontProperties(family="monospace", style="italic", weight="heavy", size=20))
+        plt.xlabel('Дата', fontsize=14, color='darkslategrey')
+        plt.ylabel('Настроение', fontsize=14, color='darkslategrey')
+    elif lang == 'en':
+        update.message.reply_text('Generating the plot...')
+        plt.title('Weekly mood dynamics', fontdict={'fontsize': 19, 'color': 'midnightblue'})
+        plt.xlabel('Date', fontsize=14, color='darkslategrey')
+        plt.ylabel('Mood', fontsize=14, color='darkslategrey')
+    plt.ylim(0, 10)
+    plt.grid(True)
+    if lang == 'ru':
+        x_labels = [translate_text_with_external_library(date.strftime('%A\n%b %d')) for date in dates]
+    elif lang == 'en':
+        x_labels = [date.strftime('%A\n%b %d') for date in dates]
+    plt.xticks(dates, x_labels, rotation=45, fontsize=13, color='black')
+    plt.yticks(np.arange(0, 12, 1), ['' if tick == 11 else str(tick) for tick in range(12)], fontsize=13, color='black')
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.9)
+    plt.gca().set_facecolor('whitesmoke')
+
+    temp_file_path = "test_plot.png"
+    plt.savefig(temp_file_path)
+    plt.close()
+    update.message.reply_photo(photo=open(temp_file_path, 'rb'))
+    if lang == 'ru':
+        update.message.reply_text(messages_ru['after_plot'])
+    elif lang == 'en':
+        update.message.reply_text(messages_en['after_plot'])
+
+    os.remove(temp_file_path)
+
+
+def get_plot(update, context):
+    user_id = str(update.message.chat_id)
+    test_plot_mood(update, context, user_id)
 
 
 def main() -> None:
@@ -458,6 +542,7 @@ def main() -> None:
     dp.add_handler(CommandHandler("weather", start_weather))
     dp.add_handler(CommandHandler("mood", select_mood))
     dp.add_handler(CommandHandler('changelang', changelang_command))
+    dp.add_handler(CommandHandler('getplot', get_plot))
     dp.add_handler(CallbackQueryHandler(button))
     updater.start_polling()
     updater.idle()
