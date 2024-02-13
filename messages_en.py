@@ -14,7 +14,7 @@ messages_en = {
     'sex_ask': "Choose your gender so I can collect statistics. All data will remain confidential and will be used for internal analysis:",
     'age_ask': "Enter your age.\nFor example: 30",
     'age_ask_again': "Please enter your age as a number.",
-    'success_save': "Great! Use /help to see available commands 🕊️",
+    'success_save': "Great! Use /help to see available commands 🕊️\nIt is important to note that I am the most basic mood tracker, I do not make medical diagnosis and do not substitute for professional consultation. If you feel like you need help, by all means, seek qualified support.",
     'no_saved_info': "Information about you has not been saved yet.",
     'about_me': "Gender: {sex}\nAge: {age}\nThis data is used only for statistical analysis.",
     'start_weather': "Enter the name of the city to get weather data (e.g., San Francisco or Dilijan).",
