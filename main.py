@@ -374,7 +374,7 @@ def save_mood(update: Update, context: CallbackContext) -> int:
     mood = int(update.message.text)
     user_id = update.message.from_user.id
     lang = get_user_lang_from_database(user_id)
-    print(f'User {user_id} saved his mood: {mood}')
+    print(f'User {user_id} saved his mood.')
 
     if lang == 'ru':
         update.message.reply_text(messages_ru['saved_mood'])
