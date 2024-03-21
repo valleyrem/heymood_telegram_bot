@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import os
 from matplotlib.font_manager import FontProperties
-
+from telegram.error import NetworkError
 
 GET_LANGUAGE = 0
 GETTING_SEX = 1
@@ -314,19 +314,25 @@ def receive_city(update, context):
     weather_data = get_weather(city_name, api_key)
 
     if weather_data["cod"] == 200:
-        temperature = weather_data["main"]["temp"]
-        humidity = weather_data["main"]["humidity"]
-        wind_speed = weather_data["wind"]["speed"]
-        visibility = weather_data["visibility"]
-        pressure = weather_data["main"]["pressure"]
-        description = weather_data["weather"][0]["description"]
+        temperature = weather_data["main"].get("temp", "-")
+        humidity = weather_data["main"].get("humidity", "-")
+        wind_speed = weather_data["wind"].get("speed", "-")
+        visibility = weather_data.get("visibility", "-")
+        pressure = weather_data["main"].get("pressure", "-")
+        description = weather_data["weather"][0].get("description", "-")
         if lang == 'ru':
             description_ru = translate_text_with_external_library(description)
-            message = messages_ru['get_weather'].format(city_name=city_name, temperature=temperature, humidity=humidity, wind_speed=wind_speed, visibility=visibility, pressure=pressure, description=description_ru)
+            message = messages_ru['get_weather'].format(city_name=city_name, temperature=temperature, humidity=humidity,
+                                                        wind_speed=wind_speed, visibility=visibility, pressure=pressure,
+                                                        description=description_ru)
         elif lang == 'en':
-            message = messages_en['get_weather'].format(city_name=city_name, temperature=temperature, humidity=humidity, wind_speed=wind_speed, visibility=visibility, pressure=pressure, description=description)
+            message = messages_en['get_weather'].format(city_name=city_name, temperature=temperature, humidity=humidity,
+                                                        wind_speed=wind_speed, visibility=visibility, pressure=pressure,
+                                                        description=description)
         else:
-            message = messages_ru['get_weather'].format(city_name=city_name, temperature=temperature, humidity=humidity, wind_speed=wind_speed, visibility=visibility, pressure=pressure, description=description)
+            message = messages_ru['get_weather'].format(city_name=city_name, temperature=temperature, humidity=humidity,
+                                                        wind_speed=wind_speed, visibility=visibility, pressure=pressure,
+                                                        description=description)
     else:
         if lang == 'ru':
             message = messages_ru['no_weather']
@@ -475,6 +481,7 @@ def test_plot_mood(update, context, user_id):
     moods = [entry[1] for entry in mood_data]
 
     plt.figure(figsize=(8, 6))
+    print(f'{user_id} got his mood plot')
     plt.plot(dates, moods, color='teal', alpha=0.7, marker='o', linewidth=8, solid_capstyle='round')
     if lang == 'ru':
         update.message.reply_text('Формирую график...')
@@ -543,8 +550,14 @@ def main() -> None:
     dp.add_handler(CommandHandler('changelang', changelang_command))
     dp.add_handler(CommandHandler('getplot', get_plot))
     dp.add_handler(CallbackQueryHandler(button))
-    updater.start_polling()
-    updater.idle()
+
+    try:
+        updater.start_polling()
+        updater.idle()
+    except NetworkError as e:
+        print('Error')
+        time.sleep(60)
+        main()
 
 
 if __name__ == '__main__':

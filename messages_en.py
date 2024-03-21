@@ -18,7 +18,7 @@ messages_en = {
     'no_saved_info': "Information about you has not been saved yet.",
     'about_me': "Gender: {sex}\nAge: {age}\nThis data is used only for statistical analysis.",
     'start_weather': "Enter the name of the city to get weather data (e.g., San Francisco or Dilijan).",
-    'get_weather': "Current weather in {city_name}:\n\n🌡️ Temperature: {temperature}°C\n💧 Humidity: {humidity}%\n💨 Wind speed: {wind_speed} m/s\n👁 Visibility: {visibility} m\n🌬️ Pressure: {pressure} hPa\n🌦️ Description: {description}\n\nTo choose another city, use /weather again. To select another command, use the menu or /help.",
+    'get_weather': "Current weather in {city_name}:\n\n🌡️ Temperature: {temperature}°C\n💧 Humidity: {humidity}%\n💨 Wind speed: {wind_speed} m/s\n👁 Visibility: {visibility} m\n⏲️ Pressure: {pressure} hPa\n🌦️ Description: {description}\n\nTo choose another city, use /weather again. To select another command, use the menu or /help.",
     'no_weather': "Weather data not received. Please use /weather again and enter the city name.",
     'select_mood': "Emotions are an integral part of our lives that we use to communicate our subtlest feelings. They influence our perceptions, relationships, behavior, and the choices we make at any given moment. Emotions help us understand other people but also allow others to understand our inner world.\n\nRate your current mood from 1 to 10 so I can track its dynamics.\nIf your mood changes, use the /mood command again to update it.",
     'saved_mood': "Mood saved! Thank you.\nNote your mood every day so I can analyze its dynamics.",
