@@ -7,12 +7,12 @@ from datetime import datetime
 from telegram import Update
 import requests
 import psycopg2
-import config
 from translate import Translator
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import numpy as np
 import os
+from dotenv import load_dotenv
 from matplotlib.font_manager import FontProperties
 from telegram.error import NetworkError
 
@@ -23,15 +23,16 @@ GET_CITY = 3
 GETTING_MOOD = 4
 translator = Translator(to_lang="ru")
 
+load_dotenv()
 
 # Connecting to PostgreSQL
 def connect_to_database():
     conn = psycopg2.connect(
-        dbname=config.DB_NAME,
-        user=config.DB_USER,
-        password=config.DB_PASSWORD,
-        host=config.DB_HOST,
-        port=config.DB_PORT
+        dbname=os.getenv('DB_NAME'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        host=os.getenv('DB_HOST'),
+        port=os.getenv('DB_PORT')
     )
     return conn
 
@@ -310,7 +311,7 @@ def receive_city(update, context):
     user_id = update.message.from_user.id
     lang = get_user_lang_from_database(user_id)
     city_name = update.message.text
-    api_key = config.OPEN_WEATHER_API
+    api_key = os.getenv('OPEN_WEATHER_API')
     weather_data = get_weather(city_name, api_key)
 
     if weather_data["cod"] == 200:
@@ -523,7 +524,7 @@ def get_plot(update, context):
 
 
 def main() -> None:
-    updater = Updater(token=config.TELEGRAM_TOKEN, use_context=True)
+    updater = Updater(token=os.getenv('TELEGRAM_TOKEN'), use_context=True)
 
     dp = updater.dispatcher
 
